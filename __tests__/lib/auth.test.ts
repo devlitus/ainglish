@@ -1,12 +1,15 @@
 import { hashPassword, verifyPassword, createUser, loginUser } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
 
 // Mock bcryptjs
 jest.mock('bcryptjs', () => ({
-  hash: jest.fn() as jest.MockedFunction<typeof import('bcryptjs').hash>,
-  compare: jest.fn() as jest.MockedFunction<typeof import('bcryptjs').compare>,
+  hash: jest.fn(),
+  compare: jest.fn(),
 }))
+
+import bcrypt from 'bcryptjs'
+const mockHash = bcrypt.hash as jest.MockedFunction<(data: string | Buffer, saltOrRounds: string | number) => Promise<string>>
+const mockCompare = bcrypt.compare as jest.MockedFunction<(data: string | Buffer, encrypted: string) => Promise<boolean>>
 
 // Mock supabase
 jest.mock('@/lib/supabase', () => ({
@@ -25,10 +28,6 @@ jest.mock('@/lib/supabase', () => ({
     }))
   },
 }))
-
-const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>
-const mockCompare = mockBcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>
-const mockHash = mockBcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>
 
 describe('Auth Functions', () => {
   beforeEach(() => {
