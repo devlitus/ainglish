@@ -1,0 +1,1 @@
+// Tipos relacionados con autenticación

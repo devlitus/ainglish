@@ -1,0 +1,1 @@
+// Store para manejo de estado de autenticación

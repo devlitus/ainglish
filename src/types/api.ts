@@ -1,0 +1,1 @@
+// Tipos para APIs y respuestas del servidor
