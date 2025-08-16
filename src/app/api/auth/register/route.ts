@@ -3,16 +3,16 @@ import { createUser } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json()
-    
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
-        { status: 400 }
-      )
-    }
+    const { name, email } = await request.json()
 
-    const user = await createUser(name, email, password)
+  if (!name || !email) {
+    return NextResponse.json(
+      { error: 'Nombre y email son requeridos' },
+      { status: 400 }
+    )
+  }
+
+  const user = await createUser(name, email)
     
     return NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email }

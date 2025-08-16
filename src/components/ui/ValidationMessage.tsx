@@ -33,61 +33,11 @@ export function ValidationMessage({ message, type, show, className = '' }: Valid
   )
 }
 
-interface PasswordStrengthIndicatorProps {
-  strength: number
-  show: boolean
-}
 
-export function PasswordStrengthIndicator({ strength, show }: PasswordStrengthIndicatorProps) {
-  if (!show) return null
 
-  const getStrengthText = (strength: number) => {
-    if (strength < 2) return 'Muy débil'
-    if (strength < 3) return 'Débil'
-    if (strength < 4) return 'Moderada'
-    if (strength < 5) return 'Fuerte'
-    return 'Muy fuerte'
-  }
 
-  const getStrengthColor = (strength: number) => {
-    if (strength < 2) return 'bg-red-500'
-    if (strength < 3) return 'bg-orange-500'
-    if (strength < 4) return 'bg-yellow-500'
-    if (strength < 5) return 'bg-blue-500'
-    return 'bg-green-500'
-  }
 
-  const getTextColor = (strength: number) => {
-    if (strength < 2) return 'text-red-600 dark:text-red-400'
-    if (strength < 3) return 'text-orange-600 dark:text-orange-400'
-    if (strength < 4) return 'text-yellow-600 dark:text-yellow-400'
-    if (strength < 5) return 'text-blue-600 dark:text-blue-400'
-    return 'text-green-600 dark:text-green-400'
-  }
 
-  return (
-    <div className="mt-2">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs text-gray-600 dark:text-gray-400">Fortaleza de contraseña:</span>
-        <span className={`text-xs font-medium ${getTextColor(strength)}`}>
-          {getStrengthText(strength)}
-        </span>
-      </div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-        <div 
-          className={`h-2 rounded-full transition-all duration-300 ${getStrengthColor(strength)}`}
-          style={{ width: `${(strength / 5) * 100}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
-interface PasswordStrength {
-  score: number
-  feedback: string
-  color: string
-}
 
 interface InputFieldProps {
   label: string
@@ -100,8 +50,7 @@ interface InputFieldProps {
   placeholder?: string
   required?: boolean
   disabled?: boolean
-  showPasswordStrength?: boolean
-  passwordStrength?: PasswordStrength
+
   className?: string
 }
 
@@ -116,8 +65,7 @@ export function InputField({
   placeholder,
   required = false,
   disabled = false,
-  showPasswordStrength = false,
-  passwordStrength = { score: 0, feedback: '', color: 'gray' },
+
   className = ''
 }: InputFieldProps) {
   const hasError = Boolean(error)
@@ -177,10 +125,7 @@ export function InputField({
       <ValidationMessage message={error || ''} type="error" show={hasError} />
       <ValidationMessage message={success || ''} type="success" show={hasSuccess} />
       
-      {/* Indicador de fortaleza de contraseña */}
-      {showPasswordStrength && type === 'password' && value && (
-        <PasswordStrengthIndicator strength={passwordStrength.score} show={true} />
-      )}
+
     </div>
   )
 }

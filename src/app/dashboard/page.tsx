@@ -1,6 +1,6 @@
 'use client'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { useAuth } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
 export default function Dashboard() {

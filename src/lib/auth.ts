@@ -1,23 +1,13 @@
-import bcrypt from 'bcryptjs'
 import { supabase } from './supabase'
 import { logSecurityEvent, sanitizeAndValidateInput, VALIDATION_CONFIG } from './security'
 
-export async function hashPassword(password: string) {
-  return await bcrypt.hash(password, 10)
-}
-
-export async function verifyPassword(password: string, hash: string) {
-  return await bcrypt.compare(password, hash)
-}
-
-export async function createUser(name: string, email: string, password: string, clientInfo?: { ip: string; userAgent?: string }) {
+export async function createUser(name: string, email: string, clientInfo?: { ip: string; userAgent?: string }) {
   try {
     // Validar y sanitizar entrada
     const nameValidation = sanitizeAndValidateInput(name, VALIDATION_CONFIG.NAME_MAX_LENGTH)
     const emailValidation = sanitizeAndValidateInput(email, VALIDATION_CONFIG.EMAIL_MAX_LENGTH)
-    const passwordValidation = sanitizeAndValidateInput(password, VALIDATION_CONFIG.PASSWORD_MAX_LENGTH)
     
-    if (!nameValidation.isValid || !emailValidation.isValid || !passwordValidation.isValid) {
+    if (!nameValidation.isValid || !emailValidation.isValid) {
       if (clientInfo) {
         logSecurityEvent({
           type: 'SUSPICIOUS_INPUT',
@@ -35,7 +25,6 @@ export async function createUser(name: string, email: string, password: string, 
     
     const sanitizedName = nameValidation.sanitized
     const sanitizedEmail = emailValidation.sanitized
-    const sanitizedPassword = passwordValidation.sanitized
     
     // Verificar si el usuario ya existe
     const { data: existingUser } = await supabase
@@ -48,15 +37,12 @@ export async function createUser(name: string, email: string, password: string, 
       throw new Error('El usuario ya existe')
     }
     
-    const hashedPassword = await hashPassword(sanitizedPassword)
-    
     const { data, error } = await supabase
       .from('users')
       .insert([
         {
           name: sanitizedName,
           email: sanitizedEmail,
-          password: hashedPassword,
           created_at: new Date().toISOString(),
           login_count: 0
         },
@@ -68,20 +54,17 @@ export async function createUser(name: string, email: string, password: string, 
       throw new Error('Error al crear usuario: ' + error.message)
     }
 
-    // Retornar usuario sin la contraseña
-    const { password: _, ...userWithoutPassword } = data
-    return userWithoutPassword
+    return data
   } catch (error) {
     // Re-lanzar el error para que sea manejado por la API
     throw error
   }
 }
 
-export async function loginUser(email: string, password: string, clientInfo?: { ip: string; userAgent?: string }) {
+export async function loginUser(email: string, clientInfo?: { ip: string; userAgent?: string }) {
   try {
-    // Validar y sanitizar entrada
+    // Validar y sanitizar entrada del email únicamente
     const emailValidation = sanitizeAndValidateInput(email, VALIDATION_CONFIG.EMAIL_MAX_LENGTH)
-    const passwordValidation = sanitizeAndValidateInput(password, VALIDATION_CONFIG.PASSWORD_MAX_LENGTH)
     
     if (!emailValidation.isValid) {
       if (clientInfo) {
@@ -99,26 +82,9 @@ export async function loginUser(email: string, password: string, clientInfo?: { 
       throw new Error('Datos de entrada inválidos')
     }
     
-    if (!passwordValidation.isValid) {
-      if (clientInfo) {
-        logSecurityEvent({
-          type: 'SUSPICIOUS_INPUT',
-          ip: clientInfo.ip,
-          userAgent: clientInfo.userAgent,
-          details: {
-            input: '[password]',
-            patterns: 'weak_password',
-            field: 'password'
-          }
-        })
-      }
-      throw new Error('Datos de entrada inválidos')
-    }
-    
     const sanitizedEmail = emailValidation.sanitized
-    const sanitizedPassword = passwordValidation.sanitized
     
-    // Buscar usuario en la base de datos
+    // Buscar usuario en la base de datos (solo verificar que el email exista)
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -141,24 +107,6 @@ export async function loginUser(email: string, password: string, clientInfo?: { 
       throw new Error('Usuario no encontrado')
     }
 
-    // Verificar contraseña
-    const isValidPassword = await verifyPassword(sanitizedPassword, user.password)
-    if (!isValidPassword) {
-      if (clientInfo) {
-        logSecurityEvent({
-          type: 'AUTH_FAILURE',
-          ip: clientInfo.ip,
-          userAgent: clientInfo.userAgent,
-          details: {
-            reason: 'invalid_password',
-            email: sanitizedEmail,
-            attempts: 1
-          }
-        })
-      }
-      throw new Error('Contraseña incorrecta')
-    }
-
     // Login exitoso - actualizar último acceso
     await supabase
       .from('users')
@@ -168,9 +116,7 @@ export async function loginUser(email: string, password: string, clientInfo?: { 
       })
       .eq('id', user.id)
 
-    // Retornar usuario sin la contraseña
-    const { password: _, ...userWithoutPassword } = user
-    return userWithoutPassword
+    return user
   } catch (error) {
     // Re-lanzar el error para que sea manejado por la API
     throw error

@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
   let response: NextResponse
   
   try {
-    // Obtener información del cliente
+    // Obtener informaci?n del cliente
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
     const contentLength = request.headers.get('content-length')
     
-    // Validar tamaño de la request
+    // Validar tama?o de la request
     if (!validateRequestSize(contentLength)) {
       logSecurityEvent({
         type: 'SUSPICIOUS_INPUT',
@@ -69,65 +69,59 @@ export async function POST(request: NextRequest) {
       })
       
       response = NextResponse.json(
-        { error: `Demasiados intentos de inicio de sesión. Intenta de nuevo en ${minutes} minutos.` },
+        { error: `Demasiados intentos de inicio de sesi?n. Intenta de nuevo en ${minutes} minutos.` },
         { status: 429 }
       )
       return addSecurityHeaders(response)
     }
     
-    // Validar que el body sea JSON válido
+    // Validar que el body sea JSON v?lido
     let body
     try {
       body = await request.json()
     } catch {
       response = NextResponse.json(
-        { error: 'Formato de datos inválido' },
+        { error: 'Formato de datos inv?lido' },
         { status: 400 }
       )
       return addSecurityHeaders(response)
     }
     
-    const { email, password } = body
+    const { email } = body
     
-    // Validación básica de presencia
-    if (!email || !password) {
+    // Validaci?n b?sica de presencia (solo email)
+    if (!email) {
       response = NextResponse.json(
-        { error: 'Email y contraseña son requeridos' },
+        { error: 'Email es requerido' },
         { status: 400 }
       )
       return addSecurityHeaders(response)
     }
     
-    // Sanitizar datos de entrada
+    // Sanitizar datos de entrada (solo email)
     const sanitizedEmail = sanitizeEmail(email)
-    const sanitizedPassword = sanitizeInput(password)
     
-    // Validar formato y seguridad
-    const validation = validateLoginData({
-      email: sanitizedEmail,
-      password: sanitizedPassword
-    })
-    
-    if (!validation.isValid) {
+    // Validar formato del email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(sanitizedEmail)) {
       response = NextResponse.json(
-        { error: 'Datos de entrada inválidos', details: validation.errors },
+        { error: 'Formato de email inv?lido' },
         { status: 400 }
       )
       return addSecurityHeaders(response)
     }
     
-    // Verificar longitud máxima para prevenir ataques DoS
-    if (sanitizedEmail.length > VALIDATION_CONFIG.EMAIL_MAX_LENGTH || 
-        sanitizedPassword.length > VALIDATION_CONFIG.PASSWORD_MAX_LENGTH) {
+    // Verificar longitud m?xima para prevenir ataques DoS
+    if (sanitizedEmail.length > VALIDATION_CONFIG.EMAIL_MAX_LENGTH) {
       response = NextResponse.json(
-        { error: 'Datos demasiado largos' },
+        { error: 'Email demasiado largo' },
         { status: 400 }
       )
       return addSecurityHeaders(response)
     }
 
-    // Intentar login con información del cliente para logging
-    const user = await loginUser(sanitizedEmail, sanitizedPassword, { ip, userAgent })
+    // Intentar login con informaci?n del cliente para logging (solo email)
+    const user = await loginUser(sanitizedEmail, { ip, userAgent })
     
     // Limpiar intentos fallidos en login exitoso
     loginRateLimiter.reset(ip)
@@ -139,18 +133,16 @@ export async function POST(request: NextRequest) {
     // Log del error para monitoreo
     console.error('Login error:', error)
     
-    const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesión'
+    const errorMessage = error instanceof Error ? error.message : 'Error al iniciar sesi?n'
     
     // No exponer detalles internos del error
-    const publicError = errorMessage.includes('Usuario no encontrado') || 
-                       errorMessage.includes('Contraseña incorrecta') ||
-                       errorMessage.includes('Datos de entrada inválidos')
+    const publicError = errorMessage.includes('Usuario no encontrado') ||
+                       errorMessage.includes('Datos de entrada inv?lidos')
                        ? errorMessage 
                        : 'Error interno del servidor'
     
-    const statusCode = errorMessage.includes('Usuario no encontrado') || 
-                      errorMessage.includes('Contraseña incorrecta') ? 401 : 
-                      errorMessage.includes('Datos de entrada inválidos') ? 400 : 500
+    const statusCode = errorMessage.includes('Usuario no encontrado') ? 401 : 
+                      errorMessage.includes('Datos de entrada inv?lidos') ? 400 : 500
     
     response = NextResponse.json(
       { error: publicError },

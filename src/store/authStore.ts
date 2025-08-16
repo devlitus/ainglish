@@ -21,24 +21,25 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: true,
       login: (user: User) => {
-        set({ user, isLoading: false })
+        set({ user, isLoading: false });
       },
       logout: () => {
-        set({ user: null, isLoading: false })
+        set({ user: null, isLoading: false });
       },
       setLoading: (isLoading: boolean) => {
-        set({ isLoading })
+        set({ isLoading });
       },
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({ user: state.user }),
+      name: "auth",
+      partialize: (state) => (state.user ? { user: state.user } : {}),
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (state) {
+            state.setLoading(false);
+          }
+        };
+      },
     }
   )
-)
-
-// Hook personalizado para mantener compatibilidad
-export const useAuth = () => {
-  const { user, isLoading, login, logout, setLoading } = useAuthStore()
-  return { user, isLoading, login, logout, setLoading }
-}
+);

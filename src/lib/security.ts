@@ -17,7 +17,6 @@ export const RATE_LIMIT_CONFIG = {
 // Configuración de validación
 export const VALIDATION_CONFIG = {
   EMAIL_MAX_LENGTH: 254,
-  PASSWORD_MAX_LENGTH: 128,
   NAME_MAX_LENGTH: 100,
   REQUEST_BODY_MAX_SIZE: 1024 * 10 // 10KB
 }
@@ -133,7 +132,7 @@ type SecurityEventDetails = {
   }
   AUTH_FAILURE: {
     email?: string
-    reason: 'invalid_credentials' | 'user_not_found' | 'validation_error' | 'invalid_password'
+    reason: 'user_not_found' | 'validation_error'
     attempts?: number
   }
 }
