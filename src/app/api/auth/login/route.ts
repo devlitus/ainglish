@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
     
-    if (!email || !password) {
+    if (!email?.trim() || !password?.trim()) {
       return NextResponse.json(
         { error: 'Email y contraseña son requeridos' },
         { status: 400 }

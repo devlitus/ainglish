@@ -1,1 +1,0 @@
-// Configuración global para testing

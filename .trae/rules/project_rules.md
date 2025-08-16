@@ -28,7 +28,7 @@
 ### Configuración Recomendada
 - **Jest**: Para pruebas unitarias y de integración
 - **React Testing Library**: Para pruebas de componentes React
-- **Cypress** o **Playwright**: Para pruebas end-to-end
+- **Playwright**: Para pruebas end-to-end
 - **@testing-library/jest-dom**: Para matchers adicionales de DOM
 
 ### Estructura de Pruebas
