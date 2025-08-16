@@ -2,6 +2,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
 /**
  * Component that redirects authenticated users away from auth pages (login/register)
@@ -21,12 +22,11 @@ export default function AuthRedirect({ children }: { children: React.ReactNode }
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full bg-[#0f172a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-blue-200">Verificando sesión...</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        message="Verificando sesión..." 
+        fullScreen={true}
+        color="blue"
+      />
     )
   }
 
@@ -34,12 +34,11 @@ export default function AuthRedirect({ children }: { children: React.ReactNode }
   // The redirect will happen via useEffect
   if (user) {
     return (
-      <div className="min-h-screen w-full bg-[#0f172a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-blue-200">Redirigiendo al dashboard...</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        message="Redirigiendo al dashboard..." 
+        fullScreen={true}
+        color="blue"
+      />
     )
   }
 

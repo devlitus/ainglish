@@ -1,5 +1,5 @@
-import LoginForm from '@/components/forms/LoginForm'
-import AuthRedirect from '@/components/AuthRedirect'
+import { LoginForm } from '@/components/forms'
+import { AuthRedirect } from '@/components/auth'
 
 export default function LoginPage() {
   return (

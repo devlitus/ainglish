@@ -1,5 +1,5 @@
-import RegisterForm from '@/components/forms/RegisterForm'
-import AuthRedirect from '@/components/AuthRedirect'
+import { RegisterForm } from '@/components/forms'
+import { AuthRedirect } from '@/components/auth'
 
 export default function RegisterPage() {
   return (

@@ -1,1 +1,2 @@
-// Exportaciones de componentes UI
+// Exportaciones centralizadas para componentes de UI
+export { ValidationMessage, InputField } from './ValidationMessage'

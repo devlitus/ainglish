@@ -1,5 +1,5 @@
 'use client'
-import ProtectedRoute from '@/components/ProtectedRoute'
+import { ProtectedRoute } from '@/components/auth'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
