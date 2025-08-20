@@ -74,9 +74,10 @@ export default function LoginForm() {
   return (
     <div className="space-y-6">
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form id="login-form" className="space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-4">
           <InputField
+            id="email-input"
             label="Email"
             type="email"
             value={email}
@@ -90,7 +91,7 @@ export default function LoginForm() {
 
         {/* Mensaje de error general */}
         {error && (
-          <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+          <div id="login-error-message" className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
@@ -111,7 +112,7 @@ export default function LoginForm() {
 
         {/* Mensaje de éxito */}
         {success && (
-          <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+          <div id="login-success-message" className="rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -132,6 +133,7 @@ export default function LoginForm() {
 
         <div>
           <button
+            id="login-submit-button"
             type="submit"
             disabled={success}
             className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md transition-all duration-200 ${loading || !isFormValid || success

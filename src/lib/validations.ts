@@ -30,7 +30,15 @@ export function validateEmail(email: string): ValidationResult {
     if (email.length > 254) {
       errors.push('El email es demasiado largo')
     }
-    if (!EMAIL_REGEX.test(email)) {
+    
+    // Validaciones específicas para casos problemáticos
+    if (email.includes('..')) {
+      errors.push('El formato del email no es válido')
+    } else if (email.startsWith('@') || email.endsWith('@')) {
+      errors.push('El formato del email no es válido')
+    } else if (!email.includes('@') || email.split('@').length !== 2) {
+      errors.push('El formato del email no es válido')
+    } else if (!EMAIL_REGEX.test(email)) {
       errors.push('El formato del email no es válido')
     }
   }

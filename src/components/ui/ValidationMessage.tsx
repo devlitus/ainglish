@@ -50,7 +50,7 @@ interface InputFieldProps {
   placeholder?: string
   required?: boolean
   disabled?: boolean
-
+  id?: string
   className?: string
 }
 
@@ -65,7 +65,7 @@ export function InputField({
   placeholder,
   required = false,
   disabled = false,
-
+  id,
   className = ''
 }: InputFieldProps) {
   const hasError = Boolean(error)
@@ -85,15 +85,18 @@ export function InputField({
     dark:focus:border-blue-400 dark:focus:ring-blue-400
   `
 
+  const inputId = id || `input-${type}-${Math.random().toString(36).substr(2, 9)}`
+  
   return (
     <div className={`space-y-1 ${className}`}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       
       <div className="relative">
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={onChange}

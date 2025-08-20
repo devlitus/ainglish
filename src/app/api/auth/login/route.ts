@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginUser } from '@/lib/auth'
-import { validateLoginData, sanitizeEmail, sanitizeInput } from '@/lib/validations'
+import { sanitizeEmail } from '@/lib/validations'
 import { 
   RateLimiter, 
   RATE_LIMIT_CONFIG, 
