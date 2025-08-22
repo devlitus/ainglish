@@ -1,13 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-
-interface Level {
-  id: number
-  name: string
-  description: string
-  difficult: string
-  icon: string
-}
+import type { Level } from '@/types/level'
 
 interface UseLevelsReturn {
   levels: Level[]
@@ -33,7 +26,16 @@ export function useLevels(): UseLevelsReturn {
         throw new Error(data.error || 'Error al obtener los niveles')
       }
       
-      setLevels(data.levels || [])
+      // Mapear los datos de la API al tipo Level correcto
+      const mappedLevels: Level[] = (data.levels || []).map((level: any) => ({
+        id: String(level.id), // Convertir id a string
+        title: level.name || level.title, // Mapear name a title
+        description: level.description,
+        feature: level.feature || '', // Asegurar que feature existe
+        difficult: level.difficult
+      }))
+      
+      setLevels(mappedLevels)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
       console.error('Error fetching levels:', err)
