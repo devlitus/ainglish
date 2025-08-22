@@ -7,13 +7,15 @@ import { useLearningPreferences } from "@/hooks/useLearningPreferences";
 import { useLevels } from "@/hooks/useLevels";
 import { useTopics } from "@/hooks/useTopics";
 import type { Level } from "@/types/level";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Dashboard() {
+  const navigate = useRouter();
   const { user } = useAuth();
   const { levels } = useLevels();
   const { topics } = useTopics();
-  const { preferences, setLevel, setTopic, clearPreferences } =
-    useLearningPreferences();
+  const { preferences, setLevel, setTopic } = useLearningPreferences();
 
   const handleLevelClick = (id: string) => {
     console.log(`Navigating to level ${id}`);
@@ -24,6 +26,12 @@ export default function Dashboard() {
     console.log(`Navigating to topic ${id}`);
     setTopic(id);
   };
+
+  useEffect(() => {
+    if (preferences.level && preferences.topic) {
+      navigate.push(`/lessons`);
+    }
+  }, [preferences.level, preferences.topic, navigate]);
 
   return (
     <ProtectedRoute>
@@ -65,7 +73,7 @@ export default function Dashboard() {
               </div>
             )}
           </section>
-          <section className="max-w-[1280px] mx-auto relative z-10 text-white pt-10">
+          <section className="max-w-[1280px] mx-auto relative z-10 text-white py-10">
             <h2 className="text-2xl font-bold mb-4">Your Topics</h2>
             {topics.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -82,7 +90,10 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <p>You have not created any topics yet.</p>
+              <div className="p-4">
+                <h2 className="text-2xl font-bold mb-4">No Topics Found</h2>
+                <p>You have not created any topics yet.</p>
+              </div>
             )}
           </section>
         </div>
