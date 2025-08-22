@@ -1,3 +1,4 @@
+import { Topics } from '@/types/topics'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 

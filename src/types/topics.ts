@@ -1,4 +1,4 @@
-enum Topics {
+export enum Topics {
   SPORT = "Sport",
   EDUCATION = "Education",
   ENTERTAINMENT = "Entertainment",
@@ -9,7 +9,7 @@ enum Topics {
   HEALTH = "Health"
 }
 
-interface Topic {
+export interface Topic {
   id: string;
   title: Topics;
   description: string;

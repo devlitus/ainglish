@@ -7,6 +7,7 @@ import { useLearningPreferences } from "@/hooks/useLearningPreferences";
 import { useLevels } from "@/hooks/useLevels";
 import { useTopics } from "@/hooks/useTopics";
 import type { Level } from "@/types/level";
+import { Topic } from "@/types/topics";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 

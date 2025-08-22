@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import type { Topic } from '@/types/topics'
 
 
 interface UseTopicsReturn {
