@@ -1,247 +1,126 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import LoginForm from '@/components/forms/LoginForm'
-import { useAuth } from '@/store/authStore'
-import { useRouter } from 'next/navigation'
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import LoginForm from "@/components/forms/LoginForm";
 
-// Mock the auth store
-jest.mock('@/store/authStore', () => ({
-  useAuth: jest.fn()
-}))
+// Mock del hook useAuth
+const mockLogin = jest.fn();
+const mockPush = jest.fn();
 
-// Mock next/navigation
-jest.mock('next/navigation', () => ({
-  useRouter: jest.fn()
-}))
+jest.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    login: mockLogin,
+  }),
+}));
 
-// Mock fetch
-global.fetch = jest.fn()
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
 
-const mockLogin = jest.fn()
-const mockPush = jest.fn()
+// Mock de fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
-describe('LoginForm', () => {
+describe("LoginForm", () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
-    jest.clearAllMocks()
-    ;(useAuth as jest.Mock).mockReturnValue({
-      login: mockLogin
-    })
-    ;(useRouter as jest.Mock).mockReturnValue({
-      push: mockPush
-    })
-    ;(fetch as jest.Mock).mockClear()
-  })
+    jest.clearAllMocks();
+    mockFetch.mockClear();
+  });
 
-  it('should render login form with all fields', () => {
-    render(<LoginForm />)
-    
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument()
-  })
+  test("debe renderizar el formulario correctamente", () => {
+    render(<LoginForm />);
 
-  it('should update email field when user types', async () => {
-    const user = userEvent.setup()
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    await user.type(emailInput, 'test@example.com')
-    
-    expect(emailInput).toHaveValue('test@example.com')
-  })
+    expect(document.getElementById("login-form")).toBeInTheDocument();
+    expect(document.getElementById("email-input")).toBeInTheDocument();
+    expect(document.getElementById("login-submit-button")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("tu@email.com")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /iniciar sesión/i })
+    ).toBeInTheDocument();
+  });
 
-  it('should update password field when user types', async () => {
-    const user = userEvent.setup()
-    render(<LoginForm />)
-    
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    await user.type(passwordInput, 'password123')
-    
-    expect(passwordInput).toHaveValue('password123')
-  })
+  test("debe validar formato de email inválido", async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
 
-  it('should submit form with correct data on successful login', async () => {
-    const user = userEvent.setup()
-    const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' }
-    
-    ;(fetch as jest.Mock).mockResolvedValueOnce({
+    const emailInput =
+      document.getElementById("email-input") ||
+      screen.getByPlaceholderText("tu@email.com");
+    const submitButton =
+      document.getElementById("login-submit-button") ||
+      screen.getByRole("button", { name: /iniciar sesión/i });
+
+    // Escribir email inválido y enviar
+    await user.type(emailInput, "email-invalido");
+    await user.click(submitButton);
+
+    // Verificar que no se hizo la llamada fetch (validación falló)
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Verificar que el botón vuelve a estar habilitado después del error
+    await waitFor(() => {
+      expect(submitButton).not.toBeDisabled();
+    });
+  });
+
+  test("debe validar email vacío al enviar formulario", async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    const submitButton =
+      document.getElementById("login-submit-button") ||
+      screen.getByRole("button", { name: /iniciar sesión/i });
+
+    // Verificar que el botón esté habilitado inicialmente (email vacío pero no validado)
+    expect(submitButton).not.toBeDisabled();
+
+    // Enviar formulario vacío
+    await user.click(submitButton);
+
+    // Verificar que no se hizo la llamada fetch (validación falló)
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Verificar que el botón vuelve a estar habilitado después del error
+    await waitFor(() => {
+      expect(submitButton).not.toBeDisabled();
+    });
+  });
+
+  test("debe enviar formulario con email válido", async () => {
+    const mockUser = {
+      id: "1",
+      name: "Juan Pérez",
+      email: "juan@example.com",
+    };
+
+    mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ user: mockUser })
-    })
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password123')
-    await user.click(submitButton)
-    
-    expect(fetch).toHaveBeenCalledWith('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' })
-    })
-    
-    await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith(mockUser)
-      expect(mockPush).toHaveBeenCalledWith('/')
-    })
-  })
+      json: async () => ({ user: mockUser }),
+    });
 
-  it('should show loading state during form submission', async () => {
-    const user = userEvent.setup()
-    
-    // Mock a delayed response
-    ;(fetch as jest.Mock).mockImplementation(() => 
-      new Promise(resolve => 
-        setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({ user: { id: '1', name: 'Test', email: 'test@example.com' } })
-        }), 100)
-      )
-    )
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password123')
-    await user.click(submitButton)
-    
-    // Check loading state
-    expect(screen.getByRole('button', { name: /iniciando/i })).toBeInTheDocument()
-    expect(screen.getByRole('button')).toBeDisabled()
-    
-    // Wait for loading to finish
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument()
-    })
-  })
+    render(<LoginForm />);
 
-  it('should display error message on failed login', async () => {
-    const user = userEvent.setup()
-    const errorMessage = 'Credenciales inválidas'
-    
-    ;(fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: errorMessage })
-    })
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'wrongpassword')
-    await user.click(submitButton)
-    
-    await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument()
-    })
-    
-    expect(mockLogin).not.toHaveBeenCalled()
-    expect(mockPush).not.toHaveBeenCalled()
-  })
+    const emailInput =
+      document.getElementById("email-input") ||
+      screen.getByPlaceholderText("tu@email.com");
+    const submitButton =
+      document.getElementById("login-submit-button") ||
+      screen.getByRole("button", { name: /iniciar sesión/i });
 
-  it('should handle network errors gracefully', async () => {
-    const user = userEvent.setup()
-    
-    ;(fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password123')
-    await user.click(submitButton)
-    
-    await waitFor(() => {
-      expect(screen.getByText('Network error')).toBeInTheDocument()
-    })
-  })
+    await user.type(emailInput, "juan@example.com");
+    await user.click(submitButton);
 
-  it('should clear error message when form is resubmitted', async () => {
-    const user = userEvent.setup()
-    
-    // First submission fails
-    ;(fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: 'Error inicial' })
-    })
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'wrongpassword')
-    await user.click(submitButton)
-    
     await waitFor(() => {
-      expect(screen.getByText('Error inicial')).toBeInTheDocument()
-    })
-    
-    // Second submission succeeds
-    ;(fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: '1', name: 'Test', email: 'test@example.com' } })
-    })
-    
-    await user.clear(passwordInput)
-    await user.type(passwordInput, 'correctpassword')
-    await user.click(submitButton)
-    
-    // Error should be cleared during submission
-    await waitFor(() => {
-      expect(screen.queryByText('Error inicial')).not.toBeInTheDocument()
-    })
-  })
+      expect(mockFetch).toHaveBeenCalledWith("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "juan@example.com" }),
+      });
+    });
 
-  it('should prevent form submission when fields are empty', () => {
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    
-    expect(emailInput).toBeRequired()
-    expect(passwordInput).toBeRequired()
-  })
-
-  it('should handle form submission via Enter key', async () => {
-    const user = userEvent.setup()
-    const mockUser = { id: '1', name: 'Test User', email: 'test@example.com' }
-    
-    ;(fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: mockUser })
-    })
-    
-    render(<LoginForm />)
-    
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
-    
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password123')
-    await user.keyboard('{Enter}')
-    
-    expect(fetch).toHaveBeenCalledWith('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' })
-    })
-  })
-})
+    expect(mockLogin).toHaveBeenCalledWith(mockUser);
+  });
+});

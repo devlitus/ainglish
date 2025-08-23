@@ -1,200 +1,219 @@
-import { hashPassword, verifyPassword, createUser, loginUser } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
-import { supabase } from '@/lib/supabase'
+// Mock de Supabase completo
+const mockSelect = jest.fn().mockReturnThis()
+const mockInsert = jest.fn().mockReturnThis()
+const mockUpdate = jest.fn().mockReturnThis()
+const mockEq = jest.fn().mockReturnThis()
+const mockSingle = jest.fn()
+const mockUpdateResult = jest.fn()
 
-// Mock bcryptjs
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn() as jest.MockedFunction<typeof import('bcryptjs').hash>,
-  compare: jest.fn() as jest.MockedFunction<typeof import('bcryptjs').compare>,
-}))
-
-// Mock supabase
 jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(() => ({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn()
-        }))
-      })),
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn()
-        }))
+      insert: mockInsert,
+      select: mockSelect,
+      eq: mockEq,
+      single: mockSingle,
+      update: jest.fn(() => ({
+        eq: jest.fn().mockResolvedValue({ data: null, error: null })
       }))
     }))
-  },
+  }
 }))
 
-const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>
-const mockCompare = mockBcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>
-const mockHash = mockBcrypt.hash as jest.MockedFunction<typeof bcrypt.hash>
+// Mock de las funciones de seguridad
+jest.mock('@/lib/security', () => ({
+  logSecurityEvent: jest.fn(),
+  sanitizeAndValidateInput: jest.fn((input: string) => ({
+    isValid: true,
+    sanitized: input,
+    originalValue: input
+  })),
+  VALIDATION_CONFIG: {
+    NAME_MAX_LENGTH: 100,
+    EMAIL_MAX_LENGTH: 254
+  }
+}))
 
-describe('Auth Functions', () => {
+import { createUser, loginUser } from '@/lib/auth'
+import { validateEmail, validateName } from '@/lib/validations'
+import { supabase } from '@/lib/supabase'
+
+describe('Funciones de Autenticación', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  describe('hashPassword', () => {
-    it('should hash password with bcrypt', async () => {
-      const password = 'testpassword'
-      const hashedPassword = 'hashedpassword123'
-      
-      mockHash.mockResolvedValue(hashedPassword)
-      
-      const result = await hashPassword(password)
-      
-      expect(mockHash).toHaveBeenCalledWith(password, 10)
-      expect(result).toBe(hashedPassword)
-    })
-  })
-
-  describe('verifyPassword', () => {
-    it('should return true for correct password', async () => {
-      const password = 'testpassword'
-      const hash = 'hashedpassword123'
-      
-      mockCompare.mockResolvedValue(true)
-      
-      const result = await verifyPassword(password, hash)
-      
-      expect(mockCompare).toHaveBeenCalledWith(password, hash)
-      expect(result).toBe(true)
-    })
-
-    it('should return false for incorrect password', async () => {
-      const password = 'wrongpassword'
-      const hash = 'hashedpassword123'
-      
-      mockCompare.mockResolvedValue(false)
-      
-      const result = await verifyPassword(password, hash)
-      
-      expect(result).toBe(false)
-    })
-  })
-
   describe('createUser', () => {
-    it('should create user successfully', async () => {
+    test('debe crear un usuario exitosamente', async () => {
       const userData = {
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'testpassword'
-      }
-      const hashedPassword = 'hashedpassword123'
-      const createdUser = {
-        id: '1',
-        name: userData.name,
-        email: userData.email,
-        password: hashedPassword
+        id: 1,
+        name: 'Juan Pérez',
+        email: 'juan@example.com',
+        created_at: new Date().toISOString(),
+        login_count: 0
       }
 
-      mockHash.mockResolvedValue(hashedPassword)
+      // Mock para verificar que el usuario no existe (primera llamada)
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'No rows found' }
+      })
       
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: createdUser,
+      // Mock para la inserción exitosa (segunda llamada)
+      mockSingle.mockResolvedValueOnce({
+        data: userData,
         error: null
       })
-      const mockSelect = jest.fn(() => ({ single: mockSingle }))
-      const mockInsert = jest.fn(() => ({ select: mockSelect }))
-      ;(supabase.from as jest.Mock).mockReturnValue({ insert: mockInsert })
 
-      const result = await createUser(userData.name, userData.email, userData.password)
+      const result = await createUser('Juan Pérez', 'juan@example.com')
 
-      expect(mockHash).toHaveBeenCalledWith(userData.password, 10)
-      expect(supabase.from).toHaveBeenCalledWith('users')
-      expect(result).toEqual(createdUser)
+      expect(result).toEqual(userData)
     })
 
-    it('should throw error if user creation fails', async () => {
-      const userData = {
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'testpassword'
+    test('debe fallar si el usuario ya existe', async () => {
+      const existingUser = {
+        email: 'juan@example.com'
       }
-      const error = new Error('Email already exists')
 
-      mockHash.mockResolvedValue('hashedpassword123')
-      
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: null,
-        error
+      // Mock para simular que el usuario ya existe
+      mockSingle.mockResolvedValueOnce({
+        data: existingUser,
+        error: null
       })
-      const mockSelect = jest.fn(() => ({ single: mockSingle }))
-      const mockInsert = jest.fn(() => ({ select: mockSelect }))
-      ;(supabase.from as jest.Mock).mockReturnValue({ insert: mockInsert })
 
-      await expect(createUser(userData.name, userData.email, userData.password))
-        .rejects.toThrow('Email already exists')
+      await expect(createUser('Juan Pérez', 'juan@example.com'))
+        .rejects
+        .toThrow('El usuario ya existe')
+    })
+
+    test('debe fallar con datos inválidos', async () => {
+      // Mock de validación fallida
+      const { sanitizeAndValidateInput } = await import('@/lib/security')
+      ;(sanitizeAndValidateInput as jest.Mock).mockReturnValueOnce({
+        isValid: false,
+        sanitized: ''
+      })
+
+      await expect(createUser('', 'invalid-email'))
+        .rejects
+        .toThrow('Datos de entrada inválidos')
+    })
+
+    test('debe manejar errores de base de datos', async () => {
+      // Mock para verificar que el usuario no existe (primera llamada)
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'No rows returned' }
+      })
+      
+      // Mock para error en inserción (segunda llamada)
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Database error' }
+      })
+
+      await expect(createUser('Juan Pérez', 'juan@example.com'))
+        .rejects
+        .toThrow('Error al crear usuario: Database error')
     })
   })
 
   describe('loginUser', () => {
-    it('should login user successfully', async () => {
-      const email = 'test@example.com'
-      const password = 'testpassword'
-      const user = {
+    test('debe hacer login exitosamente', async () => {
+      const mockUser = {
         id: '1',
-        name: 'Test User',
-        email,
-        password: 'hashedpassword123'
+        name: 'Juan Pérez',
+        email: 'juan@example.com',
+        login_count: 5,
+        last_login: '2024-01-01T00:00:00.000Z'
       }
 
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: user,
+      // Mock para encontrar el usuario
+      mockSingle.mockResolvedValueOnce({
+        data: mockUser,
         error: null
       })
-      const mockEq = jest.fn(() => ({ single: mockSingle }))
-      const mockSelect = jest.fn(() => ({ eq: mockEq }))
-      ;(supabase.from as jest.Mock).mockReturnValue({ select: mockSelect })
       
-      mockCompare.mockResolvedValue(true)
+      // Mock para el update (no necesita retornar nada específico)
 
-      const result = await loginUser(email, password)
+      const result = await loginUser('juan@example.com')
 
-      expect(supabase.from).toHaveBeenCalledWith('users')
-      expect(mockCompare).toHaveBeenCalledWith(password, user.password)
-      expect(result).toEqual({ id: user.id, name: user.name, email: user.email })
+      expect(result).toEqual(mockUser)
     })
 
-    it('should throw error if user not found', async () => {
-      const email = 'nonexistent@example.com'
-      const password = 'testpassword'
-
-      const mockSingle = jest.fn().mockResolvedValue({
+    test('debe fallar si el usuario no existe', async () => {
+      // Mock para simular que no se encuentra el usuario
+      mockSingle.mockResolvedValueOnce({
         data: null,
-        error: null
+        error: { message: 'No rows returned' }
       })
-      const mockEq = jest.fn(() => ({ single: mockSingle }))
-      const mockSelect = jest.fn(() => ({ eq: mockEq }))
-      ;(supabase.from as jest.Mock).mockReturnValue({ select: mockSelect })
 
-      await expect(loginUser(email, password))
-        .rejects.toThrow('Usuario no encontrado')
+      await expect(loginUser('noexiste@example.com'))
+        .rejects
+        .toThrow('Usuario no encontrado')
     })
 
-    it('should throw error if password is incorrect', async () => {
-      const email = 'test@example.com'
-      const password = 'wrongpassword'
-      const user = {
+    test('debe fallar con email inválido', async () => {
+      // Mock de validación fallida
+      const { sanitizeAndValidateInput } = await import('@/lib/security')
+      ;(sanitizeAndValidateInput as jest.Mock).mockReturnValueOnce({
+        isValid: false,
+        sanitized: ''
+      })
+
+      await expect(loginUser('invalid-email'))
+        .rejects
+        .toThrow('Datos de entrada inválidos')
+    })
+
+    test('debe incrementar el contador de login', async () => {
+      const mockUser = {
         id: '1',
-        name: 'Test User',
-        email,
-        password: 'hashedpassword123'
+        name: 'Juan Pérez',
+        email: 'juan@example.com',
+        login_count: 5
       }
 
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: user,
+      // Mock para encontrar el usuario
+      mockSingle.mockResolvedValueOnce({
+        data: mockUser,
         error: null
       })
-      const mockEq = jest.fn(() => ({ single: mockSingle }))
-      const mockSelect = jest.fn(() => ({ eq: mockEq }))
-      ;(supabase.from as jest.Mock).mockReturnValue({ select: mockSelect })
-      
-      mockCompare.mockResolvedValue(false)
 
-      await expect(loginUser(email, password))
-        .rejects.toThrow('Contraseña incorrecta')
+      await loginUser('juan@example.com')
+
+      // Verificar que se llamó from con 'users' para el update
+      const { supabase } = await import('@/lib/supabase')
+      expect(supabase.from).toHaveBeenCalledWith('users')
+    })
+
+    test('debe registrar eventos de seguridad en fallos', async () => {
+      const clientInfo = {
+        ip: '192.168.1.1',
+        userAgent: 'Mozilla/5.0'
+      }
+
+      // Mock para simular que no se encuentra el usuario
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'No rows returned' }
+      })
+
+      await expect(loginUser('noexiste@example.com', clientInfo))
+        .rejects
+        .toThrow('Usuario no encontrado')
+
+      const { logSecurityEvent } = await import('@/lib/security')
+      expect(logSecurityEvent).toHaveBeenCalledWith({
+        type: 'AUTH_FAILURE',
+        ip: clientInfo.ip,
+        userAgent: clientInfo.userAgent,
+        details: {
+          reason: 'user_not_found',
+          email: 'noexiste@example.com',
+          attempts: 1
+        }
+      })
     })
   })
 })

@@ -1,74 +1,104 @@
-'use client'
-import ProtectedRoute from '@/components/ProtectedRoute'
-import { useAuth } from '@/store/authStore'
-import { useRouter } from 'next/navigation'
+"use client";
+import { Header } from "@/components";
+import { ProtectedRoute } from "@/components/auth";
+import { Card } from "@/components/common/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { useLearningPreferences } from "@/hooks/useLearningPreferences";
+import { useLevels } from "@/hooks/useLevels";
+import { useTopics } from "@/hooks/useTopics";
+import type { Level } from "@/types/level";
+import { Topic } from "@/types/topics";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Dashboard() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
+  const navigate = useRouter();
+  const { user } = useAuth();
+  const { levels } = useLevels();
+  const { topics } = useTopics();
+  const { preferences, setLevel, setTopic } = useLearningPreferences();
 
-  const handleLogout = () => {
-    logout()
-    router.push('/login')
-  }
+  const handleLevelClick = (id: string) => {
+    console.log(`Navigating to level ${id}`);
+    setLevel(id);
+  };
+
+  const handleTopicClick = (id: string) => {
+    console.log(`Navigating to topic ${id}`);
+    setTopic(id);
+  };
+
+  useEffect(() => {
+    if (preferences.level && preferences.topic) {
+      navigate.push(`/lessons`);
+    }
+  }, [preferences.level, preferences.topic, navigate]);
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">
-                ¡Bienvenido, {user?.name}!
-              </h1>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-              >
-                Cerrar Sesión
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-blue-900 mb-2">
-                  Perfil de Usuario
-                </h2>
-                <p className="text-blue-700">
-                  <strong>Nombre:</strong> {user?.name}
-                </p>
-                <p className="text-blue-700">
-                  <strong>Email:</strong> {user?.email}
-                </p>
+      <Header />
+      <div className="min-h-screen w-full bg-[#0f172a] relative">
+        <div
+          className=" inset-0 z-0"
+          style={{
+            backgroundImage: `radial-gradient(circle 600px at 50% 50%, rgba(59,130,246,0.3), transparent)`,
+          }}
+        >
+          {/* Content */}
+          <section className="max-w-[1280px] mx-auto relative z-10 text-white pt-10">
+            <h2 className="text-2xl font-bold mb-4">Your Levels</h2>
+            {levels.length > 0 ? (
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {levels.map(
+                    ({ id, title, description, difficult, feature }: Level) => (
+                      <Card
+                        key={id}
+                        item={title}
+                        message={description}
+                        difficult={difficult}
+                        feature={feature}
+                        isSelected={preferences.level === id ? true : false}
+                        color="blue"
+                        size="md"
+                        onClick={() => handleLevelClick(id)}
+                      />
+                    )
+                  )}
+                </div>
               </div>
-              
-              <div className="bg-green-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-green-900 mb-2">
-                  Lecciones
-                </h2>
-                <p className="text-green-700">
-                  Accede a tus lecciones de inglés personalizadas.
-                </p>
-                <button className="mt-3 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
-                  Ver Lecciones
-                </button>
+            ) : (
+              <div className="p-4">
+                <h2 className="text-2xl font-bold mb-4">No Levels Found</h2>
+                <p>You have not created any levels yet.</p>
               </div>
-              
-              <div className="bg-purple-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold text-purple-900 mb-2">
-                  Progreso
-                </h2>
-                <p className="text-purple-700">
-                  Revisa tu progreso y estadísticas de aprendizaje.
-                </p>
-                <button className="mt-3 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors">
-                  Ver Progreso
-                </button>
+            )}
+          </section>
+          <section className="max-w-[1280px] mx-auto relative z-10 text-white py-10">
+            <h2 className="text-2xl font-bold mb-4">Your Topics</h2>
+            {topics.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {topics.map(({ id, title, description, icon }: Topic) => (
+                  <Card
+                    key={id}
+                    item={title}
+                    message={description}
+                    icon={icon}
+                    size="md"
+                    isSelected={preferences.topic === id ? true : false}
+                    onClick={() => handleTopicClick(id)}
+                  />
+                ))}
               </div>
-            </div>
-          </div>
+            ) : (
+              <div className="p-4">
+                <h2 className="text-2xl font-bold mb-4">No Topics Found</h2>
+                <p>You have not created any topics yet.</p>
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </ProtectedRoute>
-  )
+  );
 }

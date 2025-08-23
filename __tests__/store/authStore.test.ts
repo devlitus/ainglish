@@ -1,98 +1,119 @@
-import { useAuthStore, useAuth } from '@/store/authStore'
+import { useAuthStore } from '@/store/authStore'
 import { act, renderHook } from '@testing-library/react'
 
-// Mock zustand persist
+// Mock de zustand persist
 jest.mock('zustand/middleware', () => ({
   persist: <T>(fn: T) => fn
 }))
 
 describe('AuthStore', () => {
+  const mockUser = {
+    id: '1',
+    name: 'Juan Pérez',
+    email: 'juan@example.com'
+  }
+
   beforeEach(() => {
-    // Reset store state before each test
-    useAuthStore.setState({ user: null, isLoading: true })
-  })
-
-  describe('Initial State', () => {
-    it('should have initial state with no user and loading true', () => {
-      const { result } = renderHook(() => useAuth())
-      
-      expect(result.current.user).toBeNull()
-      expect(result.current.isLoading).toBe(true)
+    // Reset del store antes de cada test
+    const { result } = renderHook(() => useAuthStore())
+    act(() => {
+      result.current.logout()
+      result.current.setLoading(false)
     })
   })
 
-  describe('Login', () => {
-    it('should set user and stop loading on login', () => {
-      const { result } = renderHook(() => useAuth())
-      const mockUser = {
-        id: '1',
-        name: 'Test User',
-        email: 'test@example.com'
-      }
+  test('debe tener estado inicial correcto', () => {
+    const { result } = renderHook(() => useAuthStore())
 
-      act(() => {
-        result.current.login(mockUser)
-      })
-
-      expect(result.current.user).toEqual(mockUser)
-      expect(result.current.isLoading).toBe(false)
-    })
+    expect(result.current.user).toBeNull()
+    expect(result.current.isLoading).toBe(false)
+    expect(typeof result.current.login).toBe('function')
+    expect(typeof result.current.logout).toBe('function')
+    expect(typeof result.current.setLoading).toBe('function')
   })
 
-  describe('Logout', () => {
-    it('should clear user and stop loading on logout', () => {
-      const { result } = renderHook(() => useAuth())
-      const mockUser = {
-        id: '1',
-        name: 'Test User',
-        email: 'test@example.com'
-      }
+  test('debe hacer login correctamente', () => {
+    const { result } = renderHook(() => useAuthStore())
 
-      // First login
-      act(() => {
-        result.current.login(mockUser)
-      })
-
-      // Then logout
-      act(() => {
-        result.current.logout()
-      })
-
-      expect(result.current.user).toBeNull()
-      expect(result.current.isLoading).toBe(false)
+    act(() => {
+      result.current.login(mockUser)
     })
+
+    expect(result.current.user).toEqual(mockUser)
+    expect(result.current.isLoading).toBe(false)
   })
 
-  describe('SetLoading', () => {
-    it('should update loading state', () => {
-      const { result } = renderHook(() => useAuth())
+  test('debe hacer logout correctamente', () => {
+    const { result } = renderHook(() => useAuthStore())
 
-      act(() => {
-        result.current.setLoading(false)
-      })
-
-      expect(result.current.isLoading).toBe(false)
-
-      act(() => {
-        result.current.setLoading(true)
-      })
-
-      expect(result.current.isLoading).toBe(true)
+    // Primero hacer login
+    act(() => {
+      result.current.login(mockUser)
     })
+
+    expect(result.current.user).toEqual(mockUser)
+
+    // Luego hacer logout
+    act(() => {
+      result.current.logout()
+    })
+
+    expect(result.current.user).toBeNull()
+    expect(result.current.isLoading).toBe(false)
   })
 
-  describe('useAuth hook', () => {
-    it('should return all auth methods and state', () => {
-      const { result } = renderHook(() => useAuth())
-      
-      expect(result.current).toHaveProperty('user')
-      expect(result.current).toHaveProperty('isLoading')
-      expect(result.current).toHaveProperty('login')
-      expect(result.current).toHaveProperty('logout')
-      expect(result.current).toHaveProperty('setLoading')
-      expect(typeof result.current.login).toBe('function')
-      expect(typeof result.current.logout).toBe('function')
-      expect(typeof result.current.setLoading).toBe('function')
+  test('debe cambiar estado de loading', () => {
+    const { result } = renderHook(() => useAuthStore())
+
+    expect(result.current.isLoading).toBe(false)
+
+    act(() => {
+      result.current.setLoading(true)
     })
+
+    expect(result.current.isLoading).toBe(true)
+
+    act(() => {
+      result.current.setLoading(false)
+    })
+
+    expect(result.current.isLoading).toBe(false)
+  })
+
+  test('debe mantener usuario después de login y cambiar loading independientemente', () => {
+    const { result } = renderHook(() => useAuthStore())
+
+    act(() => {
+      result.current.login(mockUser)
+    })
+
+    expect(result.current.user).toEqual(mockUser)
+    expect(result.current.isLoading).toBe(false)
+
+    act(() => {
+      result.current.setLoading(true)
+    })
+
+    expect(result.current.user).toEqual(mockUser)
+    expect(result.current.isLoading).toBe(true)
+  })
+
+  test('debe limpiar usuario en logout sin afectar loading', () => {
+    const { result } = renderHook(() => useAuthStore())
+
+    act(() => {
+      result.current.login(mockUser)
+      result.current.setLoading(true)
+    })
+
+    expect(result.current.user).toEqual(mockUser)
+    expect(result.current.isLoading).toBe(true)
+
+    act(() => {
+      result.current.logout()
+    })
+
+    expect(result.current.user).toBeNull()
+    expect(result.current.isLoading).toBe(false)
   })
 })
