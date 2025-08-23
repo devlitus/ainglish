@@ -16,9 +16,8 @@ export function validateName(name: string): boolean {
   return nameRegex.test(name.trim())
 }
 
-export function validateLoginForm(email: string, password: string): { isValid: boolean; errors: string[] } {
-  const errors: string[] = []
-  
+// Helper function to validate email and password fields
+function validateEmailAndPassword(email: string, password: string, errors: string[]): void {
   if (!email.trim()) {
     errors.push('El email es requerido')
   } else if (!validateEmail(email)) {
@@ -30,6 +29,11 @@ export function validateLoginForm(email: string, password: string): { isValid: b
   } else if (!validatePassword(password)) {
     errors.push('La contraseña debe tener al menos 6 caracteres')
   }
+}
+
+export function validateLoginForm(email: string, password: string): { isValid: boolean; errors: string[] } {
+  const errors: string[] = []
+  validateEmailAndPassword(email, password, errors)
   
   return {
     isValid: errors.length === 0,
@@ -46,17 +50,7 @@ export function validateRegisterForm(name: string, email: string, password: stri
     errors.push('El nombre debe tener al menos 2 caracteres y solo contener letras')
   }
   
-  if (!email.trim()) {
-    errors.push('El email es requerido')
-  } else if (!validateEmail(email)) {
-    errors.push('El email no es válido')
-  }
-  
-  if (!password.trim()) {
-    errors.push('La contraseña es requerida')
-  } else if (!validatePassword(password)) {
-    errors.push('La contraseña debe tener al menos 6 caracteres')
-  }
+  validateEmailAndPassword(email, password, errors)
   
   return {
     isValid: errors.length === 0,
