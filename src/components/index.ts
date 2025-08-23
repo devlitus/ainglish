@@ -11,6 +11,3 @@ export * from './forms'
 
 // Componentes de layout
 export * from './layout'
-
-// Componentes de UI
-export * from './ui'
