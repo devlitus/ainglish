@@ -14,5 +14,5 @@ export interface Topic {
   title: Topics;
   description: string;
   icon: string;
-  colorSchema: string;
+  colorSchema?: string;
 }

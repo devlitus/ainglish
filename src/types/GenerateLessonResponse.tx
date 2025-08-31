@@ -1,0 +1,6 @@
+import { Lesson } from './lesson';
+export interface GenerateLessonResponse {
+  success: boolean;
+  lesson?: Lesson;
+  error?: string;
+}

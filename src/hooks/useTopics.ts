@@ -27,13 +27,12 @@ export function useTopics(): UseTopicsReturn {
         throw new Error(data.error || 'Error al obtener los temas')
       }
 
-      const mappedTopics: Topic[] = (data.topics || []).map((topic: any) => ({
-        id: String(topic.id), 
-        title: topic.name || topic.title,
+      const mappedTopics: Topic[] = (data.topics || []).map((topic: Topic) => ({
+        id: String(topic.id),
+        title: topic.title,
         description: topic.description,
-        icon: topic.icon || '',
-        colorSchema: topic.colorSchema || ''
-      }))
+        icon: topic.icon || "",
+      }));
 
       setTopics(mappedTopics)
     } catch (err) {
