@@ -1,34 +1,19 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { RootLayout } from '@/components/layout'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Ainglish - Aprende Inglés",
-  description: "Plataforma de aprendizaje de inglés",
-};
+  title: 'Ainglish - Aprende Inglés',
+  description: 'Plataforma de aprendizaje de inglés personalizada',
+}
 
-export default function RootLayout({
+export default function Layout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
-  );
+    <RootLayout>
+      {children}
+    </RootLayout>
+  )
 }
